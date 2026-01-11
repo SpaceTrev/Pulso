@@ -29,17 +29,20 @@ This is a monorepo containing multiple applications and shared packages:
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/SpaceTrev/Pulso.git
 cd Pulso
 ```
 
 2. Install dependencies:
+
 ```bash
 pnpm install
 ```
 
 3. Copy environment variables:
+
 ```bash
 cp .env.example .env
 cp apps/api/.env.example apps/api/.env
@@ -49,11 +52,13 @@ cp packages/db/.env.example packages/db/.env
 ```
 
 4. Start the PostgreSQL database:
+
 ```bash
 docker-compose up -d
 ```
 
 5. Generate Prisma client and push schema:
+
 ```bash
 cd packages/db
 pnpm db:generate
@@ -118,6 +123,7 @@ cd packages/db && pnpm db:studio
 ## 🛠️ Tech Stack
 
 ### Backend (API)
+
 - **Fastify** - Fast web framework
 - **TypeScript** - Type safety
 - **Prisma** - Database ORM
@@ -125,23 +131,27 @@ cd packages/db && pnpm db:studio
 - **Zod** - Schema validation
 
 ### Frontend (Web)
+
 - **Next.js 14** - React framework with App Router
 - **TypeScript** - Type safety
 - **React 18** - UI library
 
 ### Mobile
+
 - **Expo** - React Native framework
 - **Expo Router** - File-based routing
 - **TypeScript** - Type safety
 - **React Native** - Mobile UI
 
 ### Shared
+
 - **Turborepo** - Monorepo build system
 - **pnpm** - Fast package manager
 - **ESLint** - Code linting
 - **Prettier** - Code formatting
 
 ### Database
+
 - **PostgreSQL** - Primary database
 - **Docker** - Containerization
 
