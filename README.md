@@ -1,163 +1,189 @@
 # 🎰 Pulso
 
-Sweepstakes casino for Mexico - Built with pnpm, Turborepo, and modern TypeScript stack.
+Mexico-first sweepstakes "social play" platform - Built with pnpm, Turborepo, and modern TypeScript stack.
+
+## ⚠️ Compliance Notice
+
+This platform operates under a **sweepstakes model** with strict compliance rules:
+- **Gold Coins (GC)** 🪙 - For entertainment only, no cash value
+- **Sweepstakes Coins (SC)** 💎 - Free only, redeemable for prizes
+
+See [docs/COMPLIANCE.md](docs/COMPLIANCE.md) for full compliance documentation.
 
 ## 🏗️ Monorepo Structure
 
-This is a monorepo containing multiple applications and shared packages:
-
 ### Apps
 
-- **apps/api** - Fastify backend API (TypeScript)
-- **apps/web** - Next.js web application with App Router (TypeScript)
-- **apps/mobile** - Expo React Native mobile app (TypeScript)
+| App | Description | Port |
+|-----|-------------|------|
+| `apps/api` | Fastify REST API | 3001 |
+| `apps/web` | Next.js 14 web app | 3000 |
+| `apps/mobile` | Expo React Native app | 19000 |
 
 ### Packages
 
-- **packages/shared** - Shared Zod schemas and types
-- **packages/db** - Prisma database client and schema
-- **packages/provably-fair** - Provably fair gaming algorithms
+| Package | Description |
+|---------|-------------|
+| `packages/shared` | Zod schemas, types, constants, helpers |
+| `packages/db` | Prisma client & schema |
+| `packages/provably-fair` | Commit-reveal provably fair system |
+| `packages/ledger` | Pure balance calculation functions |
+| `packages/api-client` | Typed API client for web/mobile |
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - Node.js >= 20.0.0
 - pnpm >= 10.0.0
-- Docker & Docker Compose (for PostgreSQL)
+- Docker & Docker Compose
 
-### Installation
-
-1. Clone the repository:
+### Setup
 
 ```bash
-git clone https://github.com/SpaceTrev/Pulso.git
-cd Pulso
-```
-
-2. Install dependencies:
-
-```bash
+# 1. Install dependencies
 pnpm install
-```
 
-3. Copy environment variables:
-
-```bash
-cp .env.example .env
+# 2. Copy environment files
 cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env
-cp apps/mobile/.env.example apps/mobile/.env
 cp packages/db/.env.example packages/db/.env
-```
 
-4. Start the PostgreSQL database:
-
-```bash
+# 3. Start PostgreSQL
 docker-compose up -d
-```
 
-5. Generate Prisma client and push schema:
-
-```bash
-cd packages/db
+# 4. Setup database
 pnpm db:generate
 pnpm db:push
-cd ../..
+
+# 5. Seed initial data (admin + test user)
+pnpm --filter @pulso/api seed
+
+# 6. Start development
+pnpm dev
 ```
 
-## 📦 Available Scripts
+### Default Users (after seeding)
 
-### Development
+| Email | Password | Role |
+|-------|----------|------|
+| admin@pulso.mx | admin123 | ADMIN |
+| test@pulso.mx | test1234 | USER |
+
+## 📦 Scripts
 
 ```bash
-# Run API + Web in development mode
+# Development (API + Web)
 pnpm dev
 
-# Run mobile app
-pnpm mobile
+# Build all
+pnpm build
 
-# Run individual apps
-pnpm --filter @pulso/api dev
-pnpm --filter @pulso/web dev
+# Run tests
+pnpm test
+
+# Lint
+pnpm lint
+
+# Mobile
 pnpm --filter @pulso/mobile start
 ```
 
-### Building
+## 🎮 Features
 
-```bash
-# Build all apps and packages
-pnpm build
+### Dual Currency System
+- **Gold Coins**: Purchase for entertainment (coming soon)
+- **Sweepstakes Coins**: Earned free, redeemable for prizes
 
-# Build specific app
-pnpm --filter @pulso/api build
-pnpm --filter @pulso/web build
-```
+### Provably Fair Gaming
+- Commit-reveal cryptographic system
+- HMAC-SHA256 outcome generation
+- User-settable client seeds
+- Full verification after session rotation
+- See [docs/PROVABLY_FAIR.md](docs/PROVABLY_FAIR.md)
 
-### Linting & Formatting
+### Games
+- **Dice**: Roll under/over target (2% house edge)
+- More games coming soon
 
-```bash
-# Lint all packages
-pnpm lint
+### Daily Claims
+- Free SC every 24 hours
+- Claim from web or mobile
 
-# Format code
-pnpm format
-```
+### Redemptions
+- Web-only creation (compliance requirement)
+- Mobile can view status
+- Admin approval workflow
 
-### Database
+## 🏛️ Architecture
 
-```bash
-# Generate Prisma client
-cd packages/db && pnpm db:generate
+### API Design
+- RESTful endpoints with Fastify
+- JWT authentication (7-day expiry)
+- Rate limiting
+- Swagger UI at `/docs`
 
-# Push schema to database
-cd packages/db && pnpm db:push
+### Balance System
+- Append-only ledger (audit trail)
+- Atomic transactions via Prisma
+- BigInt for precision (100 units = 1.00 coins)
+- Non-negative balance invariant
 
-# Run migrations
-cd packages/db && pnpm db:migrate
-
-# Open Prisma Studio
-cd packages/db && pnpm db:studio
-```
+### Database Models
+- User, Balance, LedgerEntry
+- ProvablyFairSession, GamePlay
+- DailyClaim, RedemptionRequest
 
 ## 🛠️ Tech Stack
 
-### Backend (API)
+| Layer | Technology |
+|-------|------------|
+| Monorepo | Turborepo + pnpm |
+| API | Fastify 4.x |
+| Web | Next.js 14 + Tailwind |
+| Mobile | Expo 50 + expo-router |
+| Database | PostgreSQL 16 + Prisma |
+| Auth | JWT + argon2 |
+| Validation | Zod |
+| Testing | Vitest |
 
-- **Fastify** - Fast web framework
-- **TypeScript** - Type safety
-- **Prisma** - Database ORM
-- **JWT** - Authentication
-- **Zod** - Schema validation
+## 📁 Project Structure
 
-### Frontend (Web)
+```
+pulso/
+├── apps/
+│   ├── api/          # Fastify API
+│   │   ├── src/
+│   │   │   ├── routes/
+│   │   │   ├── services/
+│   │   │   └── index.ts
+│   │   └── scripts/seed.ts
+│   ├── web/          # Next.js
+│   │   └── src/
+│   │       ├── app/
+│   │       ├── components/
+│   │       └── contexts/
+│   └── mobile/       # Expo
+│       ├── app/
+│       └── contexts/
+├── packages/
+│   ├── api-client/   # Typed fetch wrapper
+│   ├── db/           # Prisma schema
+│   ├── ledger/       # Balance logic
+│   ├── provably-fair/ # PF implementation
+│   └── shared/       # Schemas, types, constants
+├── docs/
+│   ├── COMPLIANCE.md
+│   └── PROVABLY_FAIR.md
+└── docker-compose.yml
+```
 
-- **Next.js 14** - React framework with App Router
-- **TypeScript** - Type safety
-- **React 18** - UI library
+## 🔒 Security
 
-### Mobile
-
-- **Expo** - React Native framework
-- **Expo Router** - File-based routing
-- **TypeScript** - Type safety
-- **React Native** - Mobile UI
-
-### Shared
-
-- **Turborepo** - Monorepo build system
-- **pnpm** - Fast package manager
-- **ESLint** - Code linting
-- **Prettier** - Code formatting
-
-### Database
-
-- **PostgreSQL** - Primary database
-- **Docker** - Containerization
-
-## 🎲 Provably Fair Gaming
-
-This project implements provably fair algorithms for casino games, ensuring transparency and fairness. See `packages/provably-fair` for implementation details.
+- Passwords hashed with argon2
+- JWT with secure secret
+- CORS + Helmet configured
+- Rate limiting on all routes
+- Input validation with Zod
 
 ## 📝 License
 
@@ -165,4 +191,4 @@ Private - All rights reserved
 
 ## 🤝 Contributing
 
-This is a private project. Please contact the repository owner for contribution guidelines.
+Contact repository owner for contribution guidelines.

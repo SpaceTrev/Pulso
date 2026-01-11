@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Pulso - Mexico-first Sweepstakes Platform
+// Prisma Schema for PostgreSQL
 
 generator client {
   provider = "prisma-client-js"
@@ -10,31 +10,181 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================================
+// USER & AUTH
+// ============================================================================
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
-  id          String       @id @default(uuid())
-  email       String       @unique
-  username    String       @unique
-  password    String
-  balance     Decimal      @default(0) @db.Decimal(10, 2)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  gameResults GameResult[]
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  role          UserRole @default(USER)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  balances             Balance[]
+  ledgerEntries        LedgerEntry[]
+  provablyFairSessions ProvablyFairSession[]
+  gamePlays            GamePlay[]
+  dailyClaims          DailyClaim[]
+  redemptionRequests   RedemptionRequest[]
 
   @@map("users")
 }
 
-model GameResult {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  gameType   String
-  betAmount  Decimal  @db.Decimal(10, 2)
-  multiplier Decimal  @db.Decimal(10, 4)
-  payout     Decimal  @db.Decimal(10, 2)
-  seed       String
-  createdAt  DateTime @default(now())
+// ============================================================================
+// DUAL CURRENCY BALANCE SYSTEM
+// ============================================================================
 
-  @@map("game_results")
+enum Currency {
+  GC // Gold Coins - entertainment only, NOT redeemable
+  SC // Sweepstakes Coins - NEVER sold, earnable via free methods, redeemable
+}
+
+model Balance {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  currency  Currency
+  available BigInt   @default(0) // stored in smallest unit (e.g., cents)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, currency])
+  @@map("balances")
+}
+
+// ============================================================================
+// LEDGER (APPEND-ONLY)
+// ============================================================================
+
+enum LedgerReason {
+  INITIAL_GRANT      // Admin or system initial grant
+  ADMIN_GRANT        // Manual admin grant
+  DAILY_CLAIM        // Free daily SC claim
+  GAME_PLAY          // Debit for playing
+  GAME_WIN           // Credit for winning
+  REDEMPTION_REQUEST // Debit SC for pending redemption
+  REDEMPTION_REFUND  // Credit back if redemption rejected
+  PURCHASE           // GC purchase (STUB - no payment integration)
+}
+
+model LedgerEntry {
+  id        String       @id @default(uuid())
+  userId    String       @map("user_id")
+  currency  Currency
+  delta     BigInt       // signed: positive = credit, negative = debit
+  reason    LedgerReason
+  refType   String?      @map("ref_type") // e.g., "game_play", "redemption_request"
+  refId     String?      @map("ref_id")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, currency])
+  @@index([createdAt])
+  @@map("ledger_entries")
+}
+
+// ============================================================================
+// PROVABLY FAIR
+// ============================================================================
+
+model ProvablyFairSession {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  clientSeed     String   @default("") @map("client_seed")
+  serverSeed     String   @map("server_seed")
+  serverSeedHash String   @map("server_seed_hash")
+  nonce          Int      @default(0)
+  revealed       Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("provably_fair_sessions")
+}
+
+// ============================================================================
+// GAME PLAYS
+// ============================================================================
+
+enum GameType {
+  DICE
+}
+
+model GamePlay {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  gameType     GameType @map("game_type")
+  currency     Currency
+  amount       BigInt   // amount played (always positive)
+  payoutAmount BigInt   @map("payout_amount") // 0 if loss, > 0 if win
+  direction    String   // "over" | "under"
+  target       Int      // target number (0-9999)
+  result       Int      // result rolled (0-9999)
+  win          Boolean
+  multiplier   Int      // multiplier * 10000 for precision
+
+  // Provably fair verification fields
+  pfServerSeedHash String @map("pf_server_seed_hash")
+  pfClientSeed     String @map("pf_client_seed")
+  pfNonce          Int    @map("pf_nonce")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([createdAt])
+  @@map("game_plays")
+}
+
+// ============================================================================
+// DAILY CLAIM
+// ============================================================================
+
+model DailyClaim {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  lastClaimAt DateTime @map("last_claim_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("daily_claims")
+}
+
+// ============================================================================
+// REDEMPTION REQUESTS (Web-only creation)
+// ============================================================================
+
+enum RedemptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID // Status only - NO payout integration in MVP
+}
+
+model RedemptionRequest {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  amountSc  BigInt           @map("amount_sc") // SC amount requested
+  status    RedemptionStatus @default(PENDING)
+  notes     String?
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("redemption_requests")
 }
