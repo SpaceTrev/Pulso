@@ -1,0 +1,2 @@
+This is a placeholder for splash.png (2732x2732)
+For production, replace with actual splash screen
