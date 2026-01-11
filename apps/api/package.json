@@ -1,0 +1,26 @@
+{
+  "name": "@pulso/api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@fastify/cors": "^8.5.0",
+    "@fastify/jwt": "^7.2.4",
+    "@pulso/db": "workspace:*",
+    "@pulso/provably-fair": "workspace:*",
+    "@pulso/shared": "workspace:*",
+    "dotenv": "^16.4.1",
+    "fastify": "^4.26.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3"
+  }
+}
