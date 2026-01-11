@@ -28,6 +28,9 @@ lerna-debug.log*
 .env*.local
 .env.production
 
+# TypeScript
+*.tsbuildinfo
+
 # Vercel
 .vercel
 
